@@ -1,0 +1,29 @@
+{
+  "name": "twit-search-scraper",
+  "version": "1.0.0",
+  "description": "Scraping twitter with chrome headless and puppeteer inspired by dansalerno712's Node-Twitter-Scraper",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "start http://localhost:3000 & node server.js",
+    "dev": "start http://localhost:3000 & nodemon server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/haneulcho/Node-Twitter-Scraper.git"
+  },
+  "author": "Haneul Cho",
+  "license": "ISC",
+  "homepage": "https://twit-search-scraper.herokuapp.com/",
+  "dependencies": {
+    "chunk-date-range": "^0.1.0",
+    "cors": "^2.8.5",
+    "csv-writer": "^1.0.0",
+    "dateformat": "^3.0.3",
+    "express": "^4.16.3",
+    "puppeteer": "^1.19.0"
+  },
+  "devDependencies": {
+    "nodemon": "^1.19.1"
+  }
+}
