@@ -2,11 +2,11 @@
 <v-layout justify-center>
 	<v-card class="mx-auto ma-5" max-width="1340">
 		<v-card-title>
-			검색 결과: 총 <span class="total_count">{{ list.length }}</span>건 <v-btn @click="downloadCsv" depressed color="primary" class="ml-5"><v-icon>save_alt</v-icon>csv 파일 다운로드</v-btn>
+			검색 결과: 총 <span class="total_count">{{ list.length }}</span>건 <v-btn @click="downloadXLSX" depressed color="primary" class="ml-5"><v-icon>save_alt</v-icon>XLSX 파일 다운로드</v-btn>
 			<v-spacer></v-spacer><v-spacer></v-spacer><v-spacer></v-spacer><v-spacer></v-spacer><v-spacer></v-spacer><v-spacer></v-spacer>
 			<v-text-field v-model="search" append-icon="search" label="결과 내 재검색" class="d-block" single-line hide-details></v-text-field>
 		</v-card-title>
-		<v-data-table :headers="headers" :items="list" :sort-by="['timestamp']" :sort-desc="[true]" :search="search" :items-per-page="20" fixed-header multi-sort class="elevation-1 outlined mx-auto" max-width="1340">
+		<v-data-table :headers="headers" :items="list" :search="search" :items-per-page="20" fixed-header multi-sort class="elevation-1 outlined mx-auto" max-width="1340">
 			<template v-slot:body="{items}">
 				<tr v-for="item in items" :key="item.name" @click="goToTwitter(item)">
 					<td class="caption">{{ item.timestamp }}</td>
@@ -42,7 +42,7 @@ export default {
 		]
 	}),
 	methods: {
-		downloadCsv () {
+		downloadXLSX () {
 			this.axios.post(this.defaultUrl + '/download', { result: this.list, filename: this.getFilename() })
 			.then((res) => {
 				window.location.assign(this.defaultUrl + res.data)

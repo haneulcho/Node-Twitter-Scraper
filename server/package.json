@@ -18,8 +18,8 @@
   "dependencies": {
     "chunk-date-range": "^0.1.0",
     "cors": "^2.8.5",
-    "csv-writer": "^1.0.0",
     "dateformat": "^3.0.3",
+    "excel-export": "^0.5.1",
     "express": "^4.16.3",
     "puppeteer": "^1.19.0"
   },

@@ -1,34 +1,79 @@
-const createCsvWriter = require('csv-writer').createObjectCsvWriter;
+const nodeExcel = require('excel-export');
 
 module.exports = {
-	"toCSV": function(path) {
-		const csvWriter = createCsvWriter({
-			path: path,
-			header: [{
-				id: "timestamp",
-				title: "작성일"
-			}, {
-				id: "user_id",
-				title: "아이디"
-			}, {
-				id: "user_name",
-				title: "이름"
-			}, {
-				id: "hashtag",
-				title: "해시태그"
-			}, {
-				id: "text",
-				title: "내용"
-			}, {
-				id: "retweets",
-				title: "리트윗"
-			}, {
-				id: "likes",
-				title: "좋아요"
-			}]
-		});
+	"toXLSX": function(json, config) {
+		let conf = prepareJson(json, config);
+		let result = nodeExcel.execute(conf);
 
-		return csvWriter;
+		return result;
+
+		function getType(obj, type) {
+			if (type) {
+				return type;
+			}
+			var t = typeof obj;
+			switch (t) {
+				case 'string':
+				case 'number':
+					return t;
+				case 'boolean':
+					return 'bool';
+				default:
+					return 'string';
+			}
+		}
+
+		function getByString(object, path) {
+			path = path.replace(/\[(\w+)\]/g, '.$1');
+			path = path.replace(/^\./, '');
+			var a = path.split('.');
+			while (a.length) {
+				var n = a.shift();
+				if (n in object) {
+					object = (object[n]==undefined) ? null : object[n];
+				} else {
+					return null;
+				}
+			}
+			return object;
+		}
+
+		function prepareJson(json, config) {
+			var res = {};
+			var conf = config || {};
+			var jsonArr = [].concat(json);
+			var fields = conf.fields || Object.keys(jsonArr[0] || {});
+			var types = [];
+			if (!(fields instanceof Array)) {
+				types = Object.keys(fields).map(function(key) {
+					return fields[key];
+				});
+				fields = Object.keys(fields);
+			}
+
+			res.cols = fields.map(function(key, i) {
+				return {
+					caption: conf.fieldsName[i] || key,
+					type: getType(jsonArr[0][key], types[i]),
+					beforeCellWrite: function(row, cellData, eOpt){
+						eOpt.cellType = getType(cellData, types[i]);
+						return cellData;
+					}
+				};
+			});
+
+			res.rows = jsonArr.map(function(row) {
+				return fields.map(function(key) {
+					var value = getByString(row, key);
+					if(value && value.constructor == Object) value = JSON.stringify(value);
+					if (typeof value === 'string') {
+						value = value.replace(/[^\u0009\u000A\u000D\u0020-\uD7FF\uE000-\uFFFD\u10000-\u10FFFF]/g,'');
+					}
+					return value;
+				});
+			});
+			return res;
+		};
 	},
 	"isHidden": function(el) {
 		return (el.offsetParent === null);
