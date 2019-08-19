@@ -2,6 +2,9 @@
 <div>
 <v-layout justify-center>
 	<v-flex xs12 sm12 md12 lg12>
+		<v-alert v-model="alert.status" :type="alert.type" dismissible transition="scale-transition">
+			{{ alert.msg }}
+		</v-alert>
 		<v-card :loading="loading" class="mx-auto ma-5" max-width="620">
 			<v-toolbar flat color="red darken-1" dark>
 				<v-icon>search</v-icon>
@@ -43,7 +46,7 @@
 				<v-text-field label="다음 단어 중 하나 이상 포함 (예: 고양이 개 → '고양이' 또는 '개' 또는 둘 다 포함)" v-model="form.or" clearable></v-text-field>
 				<v-text-field label="다음 단어 제외 (예: 고양이 개 → '고양이'를 포함하지 않고 '개'를 포함하지 않음)" v-model="form.exclude" clearable></v-text-field>
 
-				<v-btn @click="resetForm" depressed><v-icon>delete_forever</v-icon>비우기</v-btn>
+				<v-btn :disabled="loading" @click="resetForm" depressed><v-icon>delete_forever</v-icon>비우기</v-btn>
 				<v-btn :disabled="!formIsValid || loading" :loading="loading" depressed color="error" class="ma-4" type="submit"><v-icon>youtube_searched_for</v-icon>검색하기</v-btn>
 			</v-form>
 		</v-card>
@@ -54,7 +57,7 @@
 </v-layout>
 </div>
 </template>
- 
+
 <script>
 import ListTable from '@/components/ListTable.vue';
 
@@ -68,6 +71,11 @@ export default {
 		loading: false,
 		calendar1: false,
 		calendar2: false,
+		alert: {
+			status: false,
+			type: 'error',
+			msg: ''
+		},
 		form: {
 			startDate: '',
 			endDate: '',
@@ -85,14 +93,20 @@ export default {
 				(this.form.startDate && this.form.endDate) && (this.form.hashtags || this.form.allOr || this.form.allAnd || this.form.or || this.form.exclude)
 			)
 		},
+		commonMsg () {
+			return `${this.form.startDate} ~ ${this.form.endDate} 기간 동안`
+		}
 	},
 	methods: {
 		resetForm () {
 			this.list = []
+			this.alert.status = false
 			this.$refs.form.reset()
 		},
 		submit () {
 			this.loading = true
+			this.list = []
+			this.alert.status = false
 			this.qstr = ''
 			if (this.form.allOr) { this.qstr += '%20' + this.form.allOr.replace(' ', '%20') }
 			if (this.form.allAnd) { this.qstr += '%20"' + this.form.allAnd.replace(' ', '%20') + '"' }
@@ -153,10 +167,25 @@ export default {
 			// this.axios.post('https://twit-search-scraper.herokuapp.com/scrape', { qstr: this.qstr, startDate: this.form.startDate, endDate: this.form.endDate })
 				.then(res => {
 					this.list = (res.data)
-					this.loading = false
+					this.setAlertMsg('success', `${this.commonMsg} 총 ${this.list.length}건의 검색 결과를 찾았습니다.`)
 				}).catch(err => {
-					this.loading = false
+					this.list = []
+					let msg = '';
+					if (err.response.status == 500) {
+						msg = '검색 결과가 없습니다. 다른 조건으로 다시 검색해 주세요.';
+					} else if (err.response.status == 503) {
+						msg = '통신 오류가 발생했습니다. 잠시 후 다시 검색해 주세요.';
+					} else {
+						msg = '예기치 못한 오류가 발생했습니다. 잠시 후 다시 검색해 주세요.';
+					}
+					this.setAlertMsg('error', msg)
 				})
+		},
+		setAlertMsg (type, msg) {
+			this.loading = false
+			this.alert.status = true
+			this.alert.type = type
+			this.alert.msg = msg
 		}
 	}
 };
