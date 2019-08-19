@@ -28,6 +28,8 @@ export default {
 	name: 'ListTable',
 	props: ['list'],
 	data: () => ({
+		defaultUrl: 'http://localhost:3000',
+		// downloadUrl = 'https://twit-search-scraper.herokuapp.com',
 		search: '',
 		headers: [
 			{ text: '작성일', align: 'center', value: 'timestamp', width: '160px' },
@@ -41,11 +43,25 @@ export default {
 	}),
 	methods: {
 		downloadCsv () {
-			window.location.assign('http://localhost:3000/download')
-			// window.location.assign('https://twit-search-scraper.herokuapp.com/download')
+			this.axios.post(this.defaultUrl + '/download', { result: this.list, filename: this.getFilename() })
+			.then((res) => {
+				window.location.assign(this.defaultUrl + res.data)
+			})
 		},
 		goToTwitter (item) {
 			window.open('https://twitter.com/' + item.user_id + '/status/' + item.id, '_blank')
+		},
+		getFilename () {
+			let newDate = new Date();
+			let year = newDate.getFullYear().toString().slice(2);
+			let month = (newDate.getMonth() + 1 < 10) ? 0 + parseInt(newDate.getMonth() + 1).toString() : newDate.getMonth() + 1;
+			let date = (newDate.getDate() < 10) ? 0 + newDate.getDate().toString() : newDate.getDate().toString();
+			let hours = (newDate.getHours() < 10) ? 0 + newDate.getHours().toString() : newDate.getHours().toString();
+			let minutes = (newDate.getMinutes() < 10) ? 0 + newDate.getMinutes().toString() : newDate.getMinutes().toString();
+			let seconds = (newDate.getSeconds() < 10) ? 0 + newDate.getSeconds().toString() : newDate.getSeconds().toString();
+			let newTimeStamp = year + month + date + '_' + hours + minutes + seconds;
+
+			return newTimeStamp;
 		}
 	}
 };

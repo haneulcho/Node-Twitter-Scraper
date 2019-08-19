@@ -10,7 +10,9 @@
   "dependencies": {
     "axios": "^0.19.0",
     "babel-polyfill": "^6.26.0",
+    "chunk-date-range": "^0.1.0",
     "core-js": "^2.6.5",
+    "dateformat": "^3.0.3",
     "vue": "^2.6.10",
     "vue-axios": "^2.1.4",
     "vue-router": "^3.0.3",

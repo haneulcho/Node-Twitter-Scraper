@@ -2,9 +2,7 @@
 <div>
 <v-layout justify-center>
 	<v-flex xs12 sm12 md12 lg12>
-		<v-alert v-model="alert.status" :type="alert.type" dismissible transition="scale-transition">
-			{{ alert.msg }}
-		</v-alert>
+		<v-alert v-model="alert.status" :type="alert.type" dense transition="scale-transition" v-html="alert.msg"></v-alert>
 		<v-card :loading="loading" class="mx-auto ma-5" max-width="620">
 			<v-toolbar flat color="red darken-1" dark>
 				<v-icon>search</v-icon>
@@ -23,7 +21,7 @@
 					<template v-slot:activator="{ on }">
 						<v-text-field v-model="form.startDate" label="시작일(from)" prepend-icon="event" readonly required v-on="on"></v-text-field>
 					</template>
-					<v-date-picker v-model="form.startDate" @input="calendar1 = false"></v-date-picker>
+					<v-date-picker v-model="form.startDate" @input="calendar1 = false" :max="maxStartDate"></v-date-picker>
 				</v-menu>
 				<v-menu
 					v-model="calendar2"
@@ -37,7 +35,7 @@
 					<template v-slot:activator="{ on }">
 						<v-text-field v-model="form.endDate" label="종료일(to)" prepend-icon="event" readonly required v-on="on"></v-text-field>
 					</template>
-					<v-date-picker v-model="form.endDate" @input="calendar2 = false"></v-date-picker>
+					<v-date-picker v-model="form.endDate" @input="calendar2 = false" :max="maxEndDate"></v-date-picker>
 				</v-menu>
 
 				<v-text-field label="다음 해시태그 (예: #엘소드 → 해시태그 #엘소드 포함)" v-model="form.hashtags" clearable></v-text-field>
@@ -50,7 +48,7 @@
 				<v-btn :disabled="!formIsValid || loading" :loading="loading" depressed color="error" class="ma-4" type="submit"><v-icon>youtube_searched_for</v-icon>검색하기</v-btn>
 			</v-form>
 		</v-card>
-		<div v-if="list.length">
+		<div v-if="list.length && !loading">
 			<ListTable :list="list"></ListTable>
 		</div>
 	</v-flex>
@@ -59,7 +57,8 @@
 </template>
 
 <script>
-import ListTable from '@/components/ListTable.vue';
+import { splitDateRange, dateformat } from '@/helpers/splitDateRange.js'
+import ListTable from '@/components/ListTable.vue'
 
 export default {
 	components: {
@@ -67,7 +66,10 @@ export default {
 	},
 	data: () => ({
 		list: [],
-		date: new Date().toISOString().substr(0, 10),
+		dateChunks: [],
+		scrapeUrl: 'http://localhost:3000/scrape',
+		// scrapeUrl = 'https://twit-search-scraper.herokuapp.com/scrape',
+		maxCount: 0,
 		loading: false,
 		calendar1: false,
 		calendar2: false,
@@ -90,16 +92,21 @@ export default {
 	computed: {
 		formIsValid () {
 			return (
-				(this.form.startDate && this.form.endDate) && (this.form.hashtags || this.form.allOr || this.form.allAnd || this.form.or || this.form.exclude)
+				(this.form.startDate && this.form.endDate && this.form.startDate < this.form.endDate) && (this.form.hashtags || this.form.allOr || this.form.allAnd || this.form.or || this.form.exclude)
 			)
 		},
-		commonMsg () {
-			return `${this.form.startDate} ~ ${this.form.endDate} 기간 동안`
+		maxStartDate () {
+			return dateformat(new Date(Date.now() - 86400000), "yyyy-mm-dd")
+		},
+		maxEndDate () {
+			return dateformat(new Date(), "yyyy-mm-dd")
 		}
 	},
 	methods: {
 		resetForm () {
 			this.list = []
+			this.dateChunks = []
+			this.maxCount = 0
 			this.alert.status = false
 			this.$refs.form.reset()
 		},
@@ -163,29 +170,49 @@ export default {
 
 			if (this.qstr.indexOf('%20') == 0) { this.qstr = this.qstr.slice(3) }
 
-			this.axios.post('http://localhost:3000/scrape', { qstr: this.qstr, startDate: this.form.startDate, endDate: this.form.endDate })
-			// this.axios.post('https://twit-search-scraper.herokuapp.com/scrape', { qstr: this.qstr, startDate: this.form.startDate, endDate: this.form.endDate })
-				.then(res => {
-					this.list = (res.data)
-					this.setAlertMsg('success', `${this.commonMsg} 총 ${this.list.length}건의 검색 결과를 찾았습니다.`)
-				}).catch(err => {
-					this.list = []
-					let msg = '';
-					if (err.response.status == 500) {
-						msg = '검색 결과가 없습니다. 다른 조건으로 다시 검색해 주세요.';
-					} else if (err.response.status == 503) {
-						msg = '통신 오류가 발생했습니다. 잠시 후 다시 검색해 주세요.';
-					} else {
-						msg = '예기치 못한 오류가 발생했습니다. 잠시 후 다시 검색해 주세요.';
-					}
-					this.setAlertMsg('error', msg)
-				})
+			this.getSearchResult()
+		},
+		getSearchResult () {
+			this.dateChunks = splitDateRange(this.form.startDate, this.form.endDate, 'day')
+			this.maxCount = this.dateChunks.length
+			this.sendAxios(1, 0)
+		},
+		sendAxios (count, idx) {
+			this.setAlertMsg('info', `총 ${this.maxCount}일 중 <strong>${count}일</strong> 째 트윗을 찾는 중입니다.`)
+			this.axios.post(this.scrapeUrl, { qstr: this.qstr, startDate: this.dateChunks[idx].start, endDate: this.dateChunks[idx].end })
+			.then((res) => {
+				this.list.push(res.data)
+				this.list = this.list.reduce((acc, val) => acc.concat(val), [])
+			})
+			.catch(err => {
+				if (err.response.status != 500) {
+					this.loading = false
+					this.resetForm()
+					this.setAlertMsg('error', '예기치 못한 오류가 발생했습니다. 잠시 후 다시 검색해 주세요.')
+				}
+			})
+			.then(() => {
+				if (count < this.maxCount) {
+					this.sendAxios(count + 1, idx + 1)
+				} else if (count == this.maxCount) {
+					this.loading = false
+					this.setAlertMsg('success', `${this.form.startDate} ~ ${this.form.endDate} 기간 동안 총 <strong>${this.list.length}개</strong> 트윗을 찾았습니다.`)
+				} else {
+					this.loading = false
+					this.resetForm()
+					this.setAlertMsg('error', '잘못된 접근입니다.')
+				}
+			})
 		},
 		setAlertMsg (type, msg) {
-			this.loading = false
 			this.alert.status = true
 			this.alert.type = type
 			this.alert.msg = msg
+			if (type == 'error') {
+				setTimeout(() => {
+					this.alert.status = false
+				}, 3000)
+			}
 		}
 	}
 };

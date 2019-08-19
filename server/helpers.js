@@ -1,9 +1,7 @@
-const chunk = require('chunk-date-range');
-const dateformat = require('dateformat');
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 
 module.exports = {
-	"toCSV": function(tweets, path) {
+	"toCSV": function(path) {
 		const csvWriter = createCsvWriter({
 			path: path,
 			header: [{
@@ -30,21 +28,7 @@ module.exports = {
 			}]
 		});
 
-		csvWriter.writeRecords(tweets)
-			.then(() => {
-				console.log(`스크랩 결과 저장 완료! (파일명: ${path})`);
-			});
-	},
-	"splitDateRange": function(startDate, endDate, chunks) {
-		let start = new Date(startDate);
-		let end = new Date(endDate);
-		let ret = chunk(start, end, chunks);
-		return ret.map(function(dateRange) {
-			return {
-				'start': dateformat(dateRange.start, "yyyy-mm-dd"),
-				'end': dateformat(dateRange.end, "yyyy-mm-dd")
-			};
-		});
+		return csvWriter;
 	},
 	"isHidden": function(el) {
 		return (el.offsetParent === null);
