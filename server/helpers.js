@@ -125,7 +125,7 @@ module.exports = {
 								clearInterval(timer);
 								resolve();
 							}
-						}, 550);
+						}, 600);
 					}
 				}, 50);
 			});

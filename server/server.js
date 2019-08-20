@@ -13,7 +13,7 @@ app.use(bodyParser.urlencoded({
 	extended: true
 }));
 app.use(cors());
-app.use(bodyParser.json());
+app.use(bodyParser.json({limit: '20mb'}));
 app.use(express.static(__dirname + "/public"));
 
 app.post('/download', (req, res) => {
