@@ -1,6 +1,22 @@
+const mkdirp = require('mkdirp');
+const fs = require('fs');
 const nodeExcel = require('excel-export');
 
 module.exports = {
+	"writeFile": function(folderPath, filePath, result, opts) {
+		try {
+			mkdirp(folderPath);
+			fs.writeFileSync(filePath, result, opts, (err) => {
+				if (err) {
+					throw err;
+				}
+			});
+			return 200;
+		} catch (err) {
+			console.log(err)
+			return err;
+		}
+	},
 	"toXLSX": function(json, config) {
 		let conf = prepareJson(json, config);
 		let result = nodeExcel.execute(conf);

@@ -1,10 +1,11 @@
 const express = require('express');
 const cors = require('cors');
-const fs = require('fs');
+const path = require('path');
 const app = express();
 const bodyParser = require('body-parser');
 const scraper = require('./scraper');
 const helpers = require('./helpers');
+const writeFile = helpers.writeFile;
 const toXLSX = helpers.toXLSX;
 const port = process.env.PORT || 3000;
 
@@ -16,19 +17,21 @@ app.use(bodyParser.json());
 app.use(express.static(__dirname + "/public"));
 
 app.post('/download', (req, res) => {
-	let result = toXLSX(req.body.result, {
+	let searchResult = toXLSX(req.body.result, {
 		fields: ['timestamp', 'user_id', 'user_name', 'hashtag', 'text', 'retweets', 'likes'],
 		fieldsName: ['작성일', '아이디', '이름', '해시태그', '내용', '리트윗', '좋아요']
 	});
-	let filename = 'searchResult_' + req.body.filename;
-	let path = '/files/' + filename + '.xlsx';
+	let folderPath = path.join(__dirname, '/public/files/');
+	let filename = 'searchResult_' + req.body.filename + '.xlsx';
+	let fileResPath = '/files/' + filename;
+	let filePath = path.join(folderPath, filename);
+	let result = writeFile(folderPath, filePath, searchResult, 'binary');
 
-	try {
-		fs.writeFileSync(__dirname + '/public' + path, result, 'binary');
-		console.log(`스크랩 결과 저장 완료! (파일명: ${filename}.xlsx)`);
-		res.status(200).send(path);
-	} catch (err) {
-		res.status(500).send(`예기치 못한 오류가 발생했습니다. ${err}`);
+	if (result == 200) {
+		console.log(`스크랩 결과 저장 완료! (파일명: ${filename})`);
+		res.status(200).send(fileResPath);
+	} else {
+		res.status(500).send(`예기치 못한 오류가 발생했습니다. ${result}`);
 	}
 });
 
