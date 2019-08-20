@@ -1,4 +1,6 @@
 /client/dist
+/server/public
+package-lock.json
 
 #data directory
 /data
